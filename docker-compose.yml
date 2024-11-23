@@ -1,0 +1,66 @@
+services:
+  app:
+    container_name: app
+    image: app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:
+      - php-fpm
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '8000:8000'
+    volumes:
+      - '.:/var/www/html'
+    env_file:
+      - .env
+    networks:
+      - app
+    depends_on:
+      - pgsql
+
+  supervisor:
+    container_name: app-supervisor
+    image: app
+    command:
+      - supervisor
+    env_file:
+      - .env
+    depends_on:
+      pgsql:
+        condition: service_healthy
+    networks:
+      - app
+
+  pgsql:
+    container_name: app-db
+    image: 'postgres:15'
+    ports:
+      - '${FORWARD_DB_PORT:-5432}:5432'
+    environment:
+      PGPASSWORD: '${DB_PASSWORD:-secret}'
+      POSTGRES_DB: '${DB_DATABASE}'
+      POSTGRES_USER: '${DB_USERNAME}'
+      POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
+    volumes:
+      - 'sail-pgsql:/var/lib/postgresql/data'
+    networks:
+      - app
+    healthcheck:
+      test:
+        - CMD
+        - pg_isready
+        - '-q'
+        - '-d'
+        - '${DB_DATABASE}'
+        - '-U'
+        - '${DB_USERNAME}'
+      retries: 3
+      timeout: 5s
+networks:
+  app:
+    driver: bridge
+volumes:
+  sail-pgsql:
+    driver: local
