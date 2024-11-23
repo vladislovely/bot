@@ -57,8 +57,6 @@ FROM app_base AS app
 
 ARG APP_ENV=Development
 
-ARG COMPOSER_TOKEN
-
 RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 COPY --link docker/php-fpm/conf.d/app.dev.ini $PHP_INI_DIR/conf.d/
 
